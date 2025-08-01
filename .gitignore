@@ -1,0 +1,8 @@
+# Ignora tudo
+*
+
+# Mas não ignora o próprio .gitignore
+!.gitignore
+
+# Não ignora o arquivo principal do projeto
+!server.mjs
