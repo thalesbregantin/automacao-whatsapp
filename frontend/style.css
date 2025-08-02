@@ -1,0 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f8fafc;
+}
+.upload-area {
+    border: 2px dashed #e2e8f0;
+    transition: all 0.3s ease;
+}
+.upload-area:hover {
+    border-color: #E95420;
+}
+.upload-area.dragover {
+    border-color: #E95420;
+    background-color: rgba(233, 84, 32, 0.05);
+}
+.btn-primary {
+    background-color: #E95420;
+    transition: all 0.3s ease;
+}
+.btn-primary:hover {
+    background-color: #d04a1c;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.step-card {
+    transition: all 0.3s ease;
+}
+.step-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+/* Loader spinner para feedback de envio */
+.loader {
+    border-top-color: transparent !important;
+    border-right-color: transparent !important;
+    border-width: 3px;
+}

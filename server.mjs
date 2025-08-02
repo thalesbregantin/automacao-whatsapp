@@ -6,6 +6,7 @@ import http from 'node:http'; // Usando import para o servidor HTTP
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
 import qrcode from 'qrcode-terminal';
+import fs from 'fs';
 
 // --- CONFIGURAÇÃO DO WHATSAPP ---
 console.log('Iniciando o cliente de WhatsApp...');
@@ -27,9 +28,11 @@ client.on('qr', (qr) => {
 client.on('ready', async () => {
     console.log('Cliente WhatsApp está pronto e conectado!');
     isWhatsappReady = true;
+    lastQr = null; // Limpa o QR code após conexão
     try {
         const info = await client.getMe();
         connectedUser = info.id._serialized || info.id.user || null;
+        console.log('Usuário conectado:', connectedUser); // Adiciona log para depuração
     } catch (e) {
         connectedUser = null;
     }
@@ -108,13 +111,67 @@ const server = http.createServer(async (req, res) => {
             data += chunk;
             if (data.length > 5e6) req.connection.destroy(); // Limite 5MB
         });
-        req.on('end', () => {
-            // Aqui você pode salvar o arquivo ou processar o CSV
-            // Exemplo: salvar como arquivo temporário
-            const fs = require('fs');
+        req.on('end', async () => {
+            // Salva o arquivo recebido
             fs.writeFileSync('upload.csv', data);
+
+            // Função auxiliar para validar linha do CSV
+            function validateCsvLine(line, idx) {
+                const original = line;
+                line = line.replace(/"/g, '');
+                const parts = line.split(',').map(p => p.trim());
+                if (parts.length !== 2) return { valid: false, error: `Linha ${idx+1}: deve conter nome e número separados por vírgula.` };
+                if (!parts[0]) return { valid: false, error: `Linha ${idx+1}: nome vazio.` };
+                if (!/^\d{12,15}$/.test(parts[1])) return { valid: false, error: `Linha ${idx+1}: número inválido (${parts[1]}). Deve ter 12 a 15 dígitos.` };
+                return { valid: true, nome: parts[0], numero: parts[1] };
+            }
+
+            // Função para envio em lote (concorrência limitada)
+            async function sendBatch(leads, mensagem, batchSize = 5) {
+                let enviados = 0;
+                let erros = [];
+                for (let i = 0; i < leads.length; i += batchSize) {
+                    const batch = leads.slice(i, i+batchSize);
+                    await Promise.all(batch.map(async (lead, idx) => {
+                        try {
+                            await sendMessageToLead(lead.numero + '@c.us', mensagem.replace('{nome}', lead.nome));
+                            enviados++;
+                            console.log(`[${new Date().toISOString()}] Mensagem enviada para ${lead.nome} (${lead.numero})`);
+                        } catch (err) {
+                            erros.push({ linha: lead.linha, erro: err.message });
+                            console.error(`[${new Date().toISOString()}] Erro ao enviar para ${lead.nome} (${lead.numero}): ${err.message}`);
+                        }
+                    }));
+                }
+                return { enviados, erros };
+            }
+
+            // Processa o CSV
+            const lines = data.split(/\r?\n/)
+                .map(l => l.trim().replace(/^"|"$/g, ''))
+                .filter(l => l.length > 0);
+            let leads = [];
+            let erros = [];
+            for (let i = 0; i < lines.length; i++) {
+                const result = validateCsvLine(lines[i], i);
+                if (result.valid) {
+                    leads.push({ nome: result.nome, numero: result.numero, linha: i+1 });
+                } else {
+                    erros.push({ linha: i+1, erro: result.error });
+                }
+            }
+            if (leads.length === 0) {
+                res.writeHead(400, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ success: false, enviados: 0, erros, message: 'Nenhum contato válido no arquivo.' }));
+                return;
+            }
+            // Mensagem padrão (pode ser configurada depois)
+            const mensagem = 'Olá, {nome}! Esta é uma mensagem de teste disparada via CSV.';
+            const startTime = Date.now();
+            const batchResult = await sendBatch(leads, mensagem, 5); // 5 envios simultâneos
+            const totalTime = ((Date.now() - startTime)/1000).toFixed(1);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ success: true, message: 'Arquivo recebido!' }));
+            res.end(JSON.stringify({ success: true, enviados: batchResult.enviados, erros: erros.concat(batchResult.erros), tempo: totalTime, total: leads.length }));
         });
         return;
     } else if (req.url === '/qrcode' && req.method === 'GET') {
@@ -129,7 +186,7 @@ const server = http.createServer(async (req, res) => {
     } else if (req.url === '/status' && req.method === 'GET') {
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({
-            connected: isWhatsappReady,
+            connected: isWhatsappReady, // true quando WhatsApp está pronto
             user: connectedUser
         }));
         return;
@@ -148,12 +205,12 @@ const server = http.createServer(async (req, res) => {
  */
 async function sendMessageToLead(number, text) {
     try {
-        console.log(`Enviando mensagem para: ${number}`);
+        console.log(`[${new Date().toISOString()}] Enviando mensagem para: ${number}`);
         await client.sendMessage(number, text);
-        console.log('Mensagem enviada com sucesso!');
+        console.log(`[${new Date().toISOString()}] Mensagem enviada com sucesso!`);
     } catch (error) {
-        console.error('Ocorreu um erro ao enviar a mensagem:', error);
-        throw error; // Propaga o erro para ser tratado na resposta do servidor
+        console.error(`[${new Date().toISOString()}] Ocorreu um erro ao enviar a mensagem:`, error);
+        throw error;
     }
 }
 
@@ -164,21 +221,5 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log('Para testar, envie uma requisição POST para http://127.0.0.1:3000/enviar-whatsapp');
 });
 
-function fetchQrCode() {
-    fetch('http://127.0.0.1:3000/qrcode')
-        .then(response => response.json())
-        .then(data => {
-            if (data.qr) {
-                qrCodeArea.innerHTML = ""; // Limpa antes de renderizar
-                const canvas = document.createElement('canvas');
-                qrCodeArea.appendChild(canvas);
-                new QRious({
-                    element: canvas,
-                    value: data.qr,
-                    size: 250
-                });
-            } else {
-                qrCodeArea.innerHTML = "<p class='text-gray-500'>QR Code não disponível.</p>";
-            }
-        });
-}
+
+

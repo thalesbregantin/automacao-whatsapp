@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente Comercial 3Cor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen bg-gray-50 flex flex-col" style="height: 100vh;">
+    <div class="container mx-auto px-4 py-0 max-w-4xl flex flex-col h-full">
+        <!-- Barra de progresso no topo -->
+        <div id="progressBar" class="flex items-center justify-center mt-6 mb-8">
+            <div class="flex space-x-4">
+                <div id="step1" class="step-indicator bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">1</div>
+                <div class="step-line w-12 h-1 bg-gray-300 my-auto"></div>
+                <div id="step2" class="step-indicator bg-gray-300 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">2</div>
+                <div class="step-line w-12 h-1 bg-gray-300 my-auto"></div>
+                <div id="step3" class="step-indicator bg-gray-300 text-gray-600 rounded-full w-8 h-8 flex items-center justify-center font-bold">3</div>
+            </div>
+        </div>
+
+        <!-- Header lateral -->
+        <header class="flex items-center justify-between mb-2">
+            <div class="flex items-center">
+                <img src="../img/logo3cor-Branco-Seguros-e-Beneficios-1531x1536.png" alt="Logo 3Cor" class="h-12 w-12 mr-3 rounded-full bg-white shadow" />
+                <div>
+                    <h1 class="text-xl font-bold text-gray-800">Assistente Comercial 3Cor</h1>
+                    <p class="text-gray-600 text-sm">Automatize seus disparos comerciais via WhatsApp</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content flex-grow para ocupar o restante da tela -->
+        <main class="flex-grow flex flex-col justify-center">
+            <!-- Etapa 1: QR Code -->
+            <section id="stepQr" class="">
+                <h2 class="text-xl font-semibold mb-4">1. Conecte seu WhatsApp</h2>
+                <div id="qrCodeArea" class="mb-6"></div>
+                <p class="text-gray-700 mb-4">Escaneie o QR Code com o WhatsApp do seu celular.</p>
+            </section>
+
+            <!-- Etapa 2: Upload -->
+            <section id="stepUpload" class="hidden bg-white rounded-xl shadow-md p-6 md:p-8 mb-10">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-semibold text-gray-800">2. Carregue seu arquivo CSV</h2>
+                    <a href="template.csv" download class="btn-primary text-white font-medium py-2 px-4 rounded-lg flex items-center gap-2">
+                        <i class="fas fa-download"></i> Baixar template
+                    </a>
+                </div>
+                <div id="dropArea" class="upload-area rounded-lg p-8 text-center cursor-pointer mb-6">
+                    <div class="flex justify-center mb-4">
+                        <i class="fas fa-file-csv text-4xl text-orange-600"></i>
+                    </div>
+                    <p class="text-gray-700 mb-2">Arraste e solte seu arquivo CSV aqui</p>
+                    <p class="text-sm text-gray-500 mb-4">ou</p>
+                    <label for="csvUpload" class="btn-primary text-white font-medium py-3 px-6 rounded-lg inline-block cursor-pointer">
+                        Selecione um arquivo
+                    </label>
+                    <input type="file" id="csvUpload" accept=".csv" class="hidden">
+                    <button id="uploadBtn" class="btn-primary text-white font-medium py-3 px-6 rounded-lg mt-6" style="display:none;">
+                        <i class="fas fa-upload mr-2"></i> Enviar arquivo
+                    </button>
+                    <button id="removeFileBtn" class="btn-primary text-white font-medium py-3 px-6 rounded-lg mt-2 bg-gray-400 hover:bg-gray-500" style="display:none;">
+                        <i class="fas fa-times mr-2"></i> Remover arquivo
+                    </button>
+                </div>
+                <!-- Informações removidas conforme solicitado -->
+                <div id="feedbackMessage" class="hidden mt-4 p-4 rounded-lg text-center"></div>
+            </section>
+
+            <!-- Etapa 3: Envio -->
+            <section id="stepSend" class="hidden">
+                <h2 class="text-xl font-semibold mb-4">3. Envie o CSV</h2>
+                <button id="submitBtn" class="btn-primary w-full text-white font-medium py-3 px-6 rounded-lg">
+                    <i class="fas fa-paper-plane mr-2"></i> Enviar CSV
+                </button>
+                <div id="feedbackMessage" class="hidden mt-4 p-4 rounded-lg text-center"></div>
+            </section>
+
+            <!-- Next Steps Section (initially hidden) -->
+            <section id="nextStepsSection" class="hidden bg-white rounded-xl shadow-md p-6 md:p-8">
+                <h2 class="text-xl font-semibold text-gray-800 mb-4">Próximas etapas</h2>
+                <p class="text-gray-700 mb-6">Após o envio, os dados ficam armazenados no banco de dados e prontos para disparo via WhatsApp.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="step-card bg-white border border-gray-200 rounded-lg p-6 hover:border-orange-600">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-database text-orange-600"></i>
+                            </div>
+                            <h3 class="font-medium text-gray-800">Leitura do banco</h3>
+                        </div>
+                        <p class="text-gray-600 text-sm">Seus contatos são armazenados com segurança para processamento.</p>
+                    </div>
+                    
+                    <div class="step-card bg-white border border-gray-200 rounded-lg p-6 hover:border-orange-600">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-comment-dots text-orange-600"></i>
+                            </div>
+                            <h3 class="font-medium text-gray-800">Disparo automático</h3>
+                        </div>
+                        <p class="text-gray-600 text-sm">Mensagens são enviadas automaticamente para todos os contatos.</p>
+                    </div>
+                    
+                    <div class="step-card bg-white border border-gray-200 rounded-lg p-6 hover:border-orange-600">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-calendar-alt text-orange-600"></i>
+                            </div>
+                            <h3 class="font-medium text-gray-800">Agendamentos</h3>
+                        </div>
+                        <p class="text-gray-600 text-sm">Programe o envio para datas e horários específicos.</p>
+                    </div>
+                    
+                    <div class="step-card bg-white border border-gray-200 rounded-lg p-6 hover:border-orange-600">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
+                                <i class="fas fa-history text-orange-600"></i>
+                            </div>
+                            <h3 class="font-medium text-gray-800">Histórico dos envios</h3>
+                        </div>
+                        <p class="text-gray-600 text-sm">Acompanhe todos os disparos realizados e seus status.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-4 text-center text-gray-500 text-sm">
+            <p>© 2023 3Cor Seguros. Todos os direitos reservados.</p>
+        </footer>
+
+        <!-- WhatsApp Status Indicator -->
+        <div id="whatsappStatus" class="fixed top-6 right-6 bg-white border border-gray-200 rounded-lg shadow-md px-4 py-2 flex items-center space-x-2 z-50">
+            <i class="fab fa-whatsapp text-green-500 text-xl"></i>
+            <span id="statusText" class="text-gray-700 text-sm font-medium">Verificando conexão...</span>
+        </div>
+    </div>
+
+    <script>
+        // JS mínimo: só eventos, sem validação pesada
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropArea = document.getElementById('dropArea');
+            const fileInput = document.getElementById('csvUpload');
+            const removeFileBtn = document.getElementById('removeFileBtn');
+            const feedbackMessage = document.getElementById('feedbackMessage');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Drag & drop
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropArea.addEventListener(eventName, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (eventName === 'dragenter' || eventName === 'dragover') dropArea.classList.add('dragover');
+                    else dropArea.classList.remove('dragover');
+                });
+            });
+
+            dropArea.addEventListener('drop', e => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                fileInput.files = files;
+                showFileInfo(files[0]);
+            });
+
+            fileInput.addEventListener('change', function() {
+                if (this.files.length) {
+                    showFileInfo(this.files[0]);
+                    removeFileBtn.style.display = 'inline-block';
+                } else {
+                    removeFileBtn.style.display = 'none';
+                    feedbackMessage.classList.add('hidden');
+                }
+            });
+
+            function showFileInfo(file) {
+                const fileName = document.createElement('p');
+                fileName.className = 'text-sm text-gray-700 mt-2 file-info';
+                fileName.innerHTML = `<i class="fas fa-file-alt mr-2"></i> ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+                const prevInfo = dropArea.querySelector('.file-info');
+                if (prevInfo) dropArea.removeChild(prevInfo);
+                dropArea.appendChild(fileName);
+            }
+
+            submitBtn.addEventListener('click', function() {
+                if (!fileInput.files.length) {
+                    feedbackMessage.textContent = 'Por favor, selecione um arquivo CSV.';
+                    feedbackMessage.className = 'mt-4 p-4 rounded-lg text-center bg-red-100 text-red-800';
+                    feedbackMessage.classList.remove('hidden');
+                    return;
+                }
+                feedbackMessage.textContent = 'Enviando arquivo...';
+                feedbackMessage.className = 'mt-4 p-4 rounded-lg text-center bg-blue-100 text-blue-800';
+                feedbackMessage.classList.remove('hidden');
+                fetch('http://127.0.0.1:3000/upload-csv', {
+                    method: 'POST',
+                    body: fileInput.files[0],
+                    headers: { 'Content-Type': 'text/csv' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let msg = `Contatos enviados: <b>${data.enviados}</b>`;
+                        if (data.erros && data.erros.length > 0) {
+                            msg += `<br><span class='text-red-700'>Erros:</span><ul class='text-left mx-auto inline-block'>`;
+                            data.erros.forEach(e => {
+                                msg += `<li>Linha ${e.linha}: ${e.erro}</li>`;
+                            });
+                            msg += '</ul>';
+                        }
+                        feedbackMessage.innerHTML = msg;
+                        feedbackMessage.className = 'mt-4 p-4 rounded-lg text-center bg-green-100 text-green-800';
+                    } else {
+                        feedbackMessage.textContent = 'Erro ao enviar. Por favor, tente novamente.';
+                        feedbackMessage.className = 'mt-4 p-4 rounded-lg text-center bg-red-100 text-red-800';
+                    }
+                    feedbackMessage.classList.remove('hidden');
+                })
+                .catch(() => {
+                    feedbackMessage.textContent = 'Erro ao enviar. Por favor, tente novamente.';
+                    feedbackMessage.className = 'mt-4 p-4 rounded-lg text-center bg-red-100 text-red-800';
+                    feedbackMessage.classList.remove('hidden');
+                });
+            });
+
+            removeFileBtn.addEventListener('click', function() {
+                fileInput.value = '';
+                removeFileBtn.style.display = 'none';
+                feedbackMessage.classList.add('hidden');
+                const fileInfo = dropArea.querySelector('.file-info');
+                if (fileInfo) dropArea.removeChild(fileInfo);
+            });
+        });
+            
+        // ...existing code...
+
+        function fetchQrCode() {
+            fetch('http://127.0.0.1:3000/qrcode')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.qr) {
+                        qrCodeArea.innerHTML = ""; // Limpa antes de renderizar
+                        const canvas = document.createElement('canvas');
+                        qrCodeArea.appendChild(canvas);
+                        new QRious({
+                            element: canvas,
+                            value: data.qr,
+                            size: 250
+                        });
+                    } else {
+                        qrCodeArea.innerHTML = "<p class='text-gray-500'>QR Code não disponível.</p>";
+                    }
+                });
+        }
+        // Chame fetchQrCode() quando a página carregar ou quando precisar mostrar o QR
+        fetchQrCode();
+
+        function fetchWhatsappStatus() {
+            fetch('http://127.0.0.1:3000/status')
+                .then(response => response.json())
+                .then(data => {
+                    const statusText = document.getElementById('statusText');
+                    if (data.connected) {
+                        statusText.textContent = data.user
+                            ? `Conectado: ${data.user}`
+                            : 'Conectado!';
+                    } else {
+                        statusText.textContent = 'Não conectado';
+                    }
+                })
+                .catch(() => {
+                    document.getElementById('statusText').textContent = 'Desconectado';
+                });
+        }
+        // Atualiza a cada 5 segundos
+        setInterval(fetchWhatsappStatus, 5000);
+        fetchWhatsappStatus();
+    </script>
+</body>
+</html>
