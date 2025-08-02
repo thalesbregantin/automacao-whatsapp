@@ -83,4 +83,4 @@ MIT
 
 ---
 
-Desenvolvido por [Thales Bregantin](https://github.com/thalesbregantin) para 3Cor Seguros.
+Desenvolvido por [Thales Bregantin](https://github.com/thalesbregantin)
