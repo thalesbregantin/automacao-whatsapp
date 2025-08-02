@@ -1,4 +1,4 @@
-// server.js
+// server.mjs
 
 // --- MÓDULOS E BIBLIOTECAS ---
 // Para instalar: npm install whatsapp-web.js qrcode-terminal
@@ -15,15 +15,24 @@ const client = new Client({
 
 // Flag para sabermos quando o WhatsApp está pronto para enviar mensagens
 let isWhatsappReady = false;
+let lastQr = null;
+let connectedUser = null;
 
 client.on('qr', (qr) => {
     console.log('QR Code recebido! Escaneie com o seu celular para conectar.');
     qrcode.generate(qr, { small: true });
+    lastQr = qr;
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
     console.log('Cliente WhatsApp está pronto e conectado!');
     isWhatsappReady = true;
+    try {
+        const info = await client.getMe();
+        connectedUser = info.id._serialized || info.id.user || null;
+    } catch (e) {
+        connectedUser = null;
+    }
 });
 
 client.on('auth_failure', msg => {
@@ -36,6 +45,18 @@ client.initialize();
 
 // --- CONFIGURAÇÃO DO SERVIDOR HTTP ---
 const server = http.createServer(async (req, res) => {
+    // Habilita CORS para todas as rotas
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // Responde OPTIONS para pré-flight
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+    }
+
     // Rota para disparar o envio da mensagem
     if (req.url === '/enviar-whatsapp' && req.method === 'POST') {
         
@@ -81,6 +102,37 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(405, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ message: 'Método não permitido. Use POST.' }));
         return;
+    } else if (req.url === '/upload-csv' && req.method === 'POST') {
+        let data = '';
+        req.on('data', chunk => {
+            data += chunk;
+            if (data.length > 5e6) req.connection.destroy(); // Limite 5MB
+        });
+        req.on('end', () => {
+            // Aqui você pode salvar o arquivo ou processar o CSV
+            // Exemplo: salvar como arquivo temporário
+            const fs = require('fs');
+            fs.writeFileSync('upload.csv', data);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'Arquivo recebido!' }));
+        });
+        return;
+    } else if (req.url === '/qrcode' && req.method === 'GET') {
+        if (lastQr) {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ qr: lastQr }));
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ message: 'QR Code não disponível.' }));
+        }
+        return;
+    } else if (req.url === '/status' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({
+            connected: isWhatsappReady,
+            user: connectedUser
+        }));
+        return;
     } else {
         // Resposta padrão para outras rotas
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -111,3 +163,22 @@ server.listen(PORT, '127.0.0.1', () => {
   console.log(`Servidor rodando em http://127.0.0.1:${PORT}`);
   console.log('Para testar, envie uma requisição POST para http://127.0.0.1:3000/enviar-whatsapp');
 });
+
+function fetchQrCode() {
+    fetch('http://127.0.0.1:3000/qrcode')
+        .then(response => response.json())
+        .then(data => {
+            if (data.qr) {
+                qrCodeArea.innerHTML = ""; // Limpa antes de renderizar
+                const canvas = document.createElement('canvas');
+                qrCodeArea.appendChild(canvas);
+                new QRious({
+                    element: canvas,
+                    value: data.qr,
+                    size: 250
+                });
+            } else {
+                qrCodeArea.innerHTML = "<p class='text-gray-500'>QR Code não disponível.</p>";
+            }
+        });
+}
