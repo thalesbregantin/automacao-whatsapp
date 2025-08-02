@@ -1,4 +1,8 @@
-# Não ignora os arquivos principais do projeto
+# Ignora tudo por padrão
+*
+
+# Não ignora arquivos principais do projeto
+!.gitignore
 !server.mjs
 !frontend/
 !frontend/index.html
@@ -7,14 +11,8 @@
 !frontend/template.csv
 !img/
 
-# Ignora tudo o resto
-*
-
-# Mas não ignora o próprio .gitignore
-!.gitignore
-
 # Ignora arquivos e pastas desnecessários
+node_modules/
 .wwebjs_auth/
 .wwebjs_cache/
-node_modules/
 upload.csv
