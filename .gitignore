@@ -1,20 +1,19 @@
-# Ignora tudo
-*
-
-# Mas não ignora o próprio .gitignore
-!.gitignore
-
-# Não ignora a pasta frontend e seus arquivos principais
+# Não ignora os arquivos principais do projeto
+!server.mjs
 !frontend/
 !frontend/index.html
 !frontend/style.css
 !frontend/app.js
 !frontend/template.csv
+!img/
 
-# Não ignora o arquivo principal do projeto
-!server.mjs
-!img
+# Ignora tudo o resto
+*
 
+# Mas não ignora o próprio .gitignore
+!.gitignore
+
+# Ignora arquivos e pastas desnecessários
 .wwebjs_auth/
 .wwebjs_cache/
 node_modules/
